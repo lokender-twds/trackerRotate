@@ -8,14 +8,35 @@ const adminRoutes = require("./routes/admin");
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true
+  })
+);
+
 app.use(express.json());
 
-mongoose.connect(process.env.MONGO_URI);
+// 🔴 IMPORTANT FIX: await MongoDB before starting server
+async function startServer() {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      dbName: "link_tracker"
+    });
 
-app.use("/", redirectRoutes);
-app.use("/api", adminRoutes);
+    console.log("MongoDB connected");
 
-app.listen(4000, () =>
-  console.log("Server running on port 4000")
-);
+    app.use("/", redirectRoutes);
+    app.use("/api", adminRoutes);
+
+    const PORT = process.env.PORT || 4000;
+    app.listen(PORT, () =>
+      console.log(`Server running on port ${PORT}`)
+    );
+  } catch (err) {
+    console.error("MongoDB connection failed:", err);
+    process.exit(1);
+  }
+}
+
+startServer();
