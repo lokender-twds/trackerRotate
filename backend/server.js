@@ -9,8 +9,7 @@ const adminRoutes = require("./routes/admin");
 const app = express();
 
 /**
- * ✅ CORS FIX
- * Allow both local dev + production dashboard
+ * ✅ CORS configuration
  */
 const allowedOrigins = [
   "http://localhost:5173",
@@ -20,7 +19,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow server-to-server & curl requests
+      // allow non-browser requests (curl, server-to-server)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -35,12 +34,8 @@ app.use(
   })
 );
 
-// 🔴 VERY IMPORTANT: handle preflight properly
-app.options("*", cors());
-
 app.use(express.json());
 
-// 🔴 Start server ONLY after MongoDB connects
 async function startServer() {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
