@@ -30,6 +30,14 @@ app.use(
   })
 );
 
+// 🔴 THIS IS THE KEY FIX
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 
 async function startServer() {
@@ -41,10 +49,10 @@ async function startServer() {
 
     console.log("MongoDB connected");
 
-    // ✅ API routes FIRST
+    // API FIRST
     app.use("/api", adminRoutes);
 
-    // ✅ Redirect catcher LAST
+    // Redirect LAST
     app.use("/", redirectRoutes);
 
     const PORT = process.env.PORT || 4000;
