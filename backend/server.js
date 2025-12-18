@@ -8,20 +8,44 @@ const adminRoutes = require("./routes/admin");
 
 const app = express();
 
+/**
+ * ✅ CORS FIX
+ * Allow both local dev + production dashboard
+ */
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://dashboard.proznth.com"
+];
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: function (origin, callback) {
+      // allow server-to-server & curl requests
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"), false);
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
   })
 );
 
+// 🔴 VERY IMPORTANT: handle preflight properly
+app.options("*", cors());
+
 app.use(express.json());
 
-// 🔴 IMPORTANT FIX: await MongoDB before starting server
+// 🔴 Start server ONLY after MongoDB connects
 async function startServer() {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
-      dbName: "link_tracker"
+      dbName: "link_tracker",
+      serverSelectionTimeoutMS: 5000
     });
 
     console.log("MongoDB connected");
@@ -30,11 +54,12 @@ async function startServer() {
     app.use("/api", adminRoutes);
 
     const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () =>
-      console.log(`Server running on port ${PORT}`)
-    );
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   } catch (err) {
-    console.error("MongoDB connection failed:", err);
+    console.error("MongoDB connection failed");
+    console.error("Message:", err.message);
     process.exit(1);
   }
 }
